@@ -16,6 +16,9 @@
     h1 { margin-bottom:3px; color:#fff; font-size:1.4rem; }
     .tagline { margin:0; color:#fff; font-size:.9rem; }
     .today { padding:10px 16px; border:1px solid var(--line); border-radius:999px; color:var(--navy); background:#ffffffb8; font-size:.9rem; font-weight:bold; }
+    .header-actions { display:flex; align-items:center; gap:10px; }
+    .game-link { padding:10px 14px; border-radius:999px; color:#fff; background:#3f78a8; font-size:.9rem; font-weight:bold; text-decoration:none; }
+    .game-link:hover { background:#2f638f; }
     .hero { display:flex; justify-content:space-between; align-items:center; gap:28px; padding:32px; color:white; background:var(--navy); border-radius:26px; box-shadow:var(--shadow); overflow:hidden; position:relative; }
     .hero:after { content:""; position:absolute; width:250px; height:250px; border:35px solid #ffffff12; border-radius:50%; right:-45px; top:-90px; }
     .hero h2 { margin-bottom:10px; font-size:clamp(1.7rem,4vw,2.6rem); }
@@ -72,7 +75,7 @@
   <div class="shell">
     <header>
       <div class="brand"><div class="logo">✦</div><div><h1>My Study Space</h1><p class="tagline">Plan smart. Learn calmly. Grow every day.</p></div></div>
-      <div class="today" id="todayText"></div>
+      <div class="header-actions"><a class="game-link" href="game.html">🎮 2D Shooting Game</a><div class="today" id="todayText"></div></div>
     </header>
 
     <main>

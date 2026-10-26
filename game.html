@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Star Defender</title>
+  <style>
+    :root { --blue:#3f78a8; --navy:#19324d; --gold:#f3b94b; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; display:grid; place-items:center; color:#fff; background:#000; font-family:Arial,Helvetica,sans-serif; }
+    .game-shell { width:min(960px,94vw); }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+    h1 { margin:0; font-size:clamp(1.25rem,3vw,1.8rem); }
+    .home-link { color:#fff; text-decoration:none; font-size:.9rem; }
+    .home-link:hover { color:var(--gold); }
+    .game-card { position:relative; overflow:hidden; border:2px solid #244c69; border-radius:18px; background:#071421; box-shadow:0 18px 50px #000; }
+    canvas { display:block; width:100%; height:auto; aspect-ratio:16/9; background:radial-gradient(circle at 50% 35%,#102b42,#02070d 70%); cursor:crosshair; }
+    .hud { display:flex; justify-content:space-between; gap:12px; padding:11px 16px; color:#dceef8; background:var(--navy); font-weight:bold; flex-wrap:wrap; }
+    .hp-wrap { display:flex; align-items:center; gap:7px; }
+    .hp-bar { width:110px; height:10px; overflow:hidden; border:1px solid #80aec5; border-radius:99px; background:#152a38; }
+    .hp-fill { display:block; width:100%; height:100%; background:#4fd18b; transition:width .15s; }
+    .overlay { position:absolute; inset:0; display:grid; place-items:center; padding:24px; background:#02070dcc; text-align:center; }
+    .overlay.hidden { display:none; }
+    .menu-box { max-width:430px; padding:28px; border:1px solid #386482; border-radius:18px; background:#0b1d2e; }
+    .menu-box h2 { margin:0 0 10px; font-size:2rem; color:var(--gold); }
+    .menu-box p { color:#cee3ef; line-height:1.55; }
+    button { padding:12px 20px; border:0; border-radius:10px; color:#fff; background:var(--blue); cursor:pointer; font:inherit; font-weight:bold; }
+    button:hover { background:#5791bf; }
+    .tip { margin-top:14px; color:#91b2c5; font-size:.82rem; }
+  </style>
+</head>
+<body>
+  <main class="game-shell">
+    <div class="topbar"><h1>🚀 Star Defender</h1><a class="home-link" href="index.html">← Back to Study Space</a></div>
+    <section class="game-card">
+      <canvas id="gameCanvas" width="960" height="540" aria-label="Star Defender game"></canvas>
+      <div class="hud"><span>Score: <b id="score">0</b></span><span>Level: <b id="level">1</b></span><span class="hp-wrap">F-22 HP <span class="hp-bar"><i class="hp-fill" id="hpFill"></i></span><b id="hpText">100</b></span><span>Ammo: <b id="ammo">120</b></span><span>Dodge: <b id="dodgeText">READY</b></span></div>
+      <div class="overlay" id="overlay"><div class="menu-box"><h2 id="menuTitle">F-22 Raptor: Air Defense</h2><p id="menuText">Fly the F-22 Raptor, dodge SU-57 attacks, and protect the sky.</p><button id="startButton">Start Mission</button><div class="tip">Move: A/D or ←/→ &nbsp; • &nbsp; Rapid fire: Space/click &nbsp; • &nbsp; Dodge: Shift &nbsp; • &nbsp; Reload: R</div></div></div>
+    </section>
+  </main>
+  <script>
+    const canvas = document.getElementById('gameCanvas'), ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score'), livesEl = document.getElementById('lives'), levelEl = document.getElementById('level');
+    const overlay = document.getElementById('overlay'), menuTitle = document.getElementById('menuTitle'), menuText = document.getElementById('menuText'), startButton = document.getElementById('startButton');
+    const keys = {}, player = {x:480,y:480,w:52,h:30,speed:7,hp:100,ammo:120,dodgeReady:true,invulnerable:0}; let bullets=[], enemyBullets=[], enemies=[], score=0, lives=3, level=1, running=false, lastSpawn=0, lastShot=0, lastEnemyShot=0, animation;
+    const hpFill=document.getElementById('hpFill'), hpText=document.getElementById('hpText'), ammoEl=document.getElementById('ammo'), dodgeText=document.getElementById('dodgeText');
+    function reset() { bullets=[]; enemyBullets=[]; enemies=[]; score=0; lives=3; level=1; player.x=480; player.hp=100; player.ammo=120; player.dodgeReady=true; player.invulnerable=0; updateHud(); }
+    function updateHud() { scoreEl.textContent=score; levelEl.textContent=level; hpText.textContent=Math.max(0,Math.ceil(player.hp)); hpFill.style.width=`${Math.max(0,player.hp)}%`; hpFill.style.background=player.hp<35?'#f05b5b':'#4fd18b'; ammoEl.textContent=player.ammo; dodgeText.textContent=player.dodgeReady?'READY':'RECHARGING'; }
+    function startGame() { reset(); running=true; overlay.classList.add('hidden'); cancelAnimationFrame(animation); animation=requestAnimationFrame(loop); }
+    function endGame() { running=false; menuTitle.textContent='Game Over'; menuText.textContent=`Great try! You scored ${score} points.`; startButton.textContent='Play Again'; overlay.classList.remove('hidden'); }
+    function shoot() { const now=performance.now(); if (!running || now-lastShot<75 || player.ammo<=0) return; lastShot=now; player.ammo--; bullets.push({x:player.x-13,y:player.y-18,speed:13}); bullets.push({x:player.x+13,y:player.y-18,speed:13}); updateHud(); }
+    function reload() { if(running) { player.ammo=120; updateHud(); } }
+    function dodge() { if(!running || !player.dodgeReady) return; player.x += keys.ArrowLeft||keys.a ? -125 : 125; player.x=Math.max(35,Math.min(canvas.width-35,player.x)); player.dodgeReady=false; player.invulnerable=850; updateHud(); setTimeout(()=>{player.dodgeReady=true;updateHud();},2500); }
+    function spawnEnemy() { const size=30+Math.random()*18; enemies.push({x:size/2+Math.random()*(canvas.width-size),y:-size,size,speed:1.3+level*.18+Math.random()*1.2,spin:Math.random()*6,lastShot:performance.now()+500}); }
+    function hit(a,b) { return a.x < b.x+b.size/2 && a.x > b.x-b.size/2 && a.y < b.y+b.size/2 && a.y > b.y-b.size/2; }
+    function drawStars() { ctx.fillStyle='#fff'; for(let i=0;i<55;i++){const x=(i*173)%canvas.width,y=(i*97+performance.now()/35)%canvas.height;ctx.globalAlpha=(i%3+1)/5;ctx.fillRect(x,y,2,2);} ctx.globalAlpha=1; }
+    function drawPlayer() { ctx.save(); ctx.translate(player.x,player.y); if(player.invulnerable>0 && Math.floor(player.invulnerable/80)%2===0) ctx.globalAlpha=.45; ctx.fillStyle='#a9bac4'; ctx.beginPath(); ctx.moveTo(0,-25); ctx.lineTo(9,-5); ctx.lineTo(34,16); ctx.lineTo(9,12); ctx.lineTo(0,25); ctx.lineTo(-9,12); ctx.lineTo(-34,16); ctx.lineTo(-9,-5); ctx.closePath(); ctx.fill(); ctx.fillStyle='#4b6574'; ctx.fillRect(-5,-17,10,31); ctx.fillStyle='#54c7f2'; ctx.fillRect(-5,-12,10,7); ctx.fillStyle='#f3b94b'; ctx.fillRect(-13,17,9,9); ctx.fillRect(4,17,9,9); ctx.restore(); }
+    function draw() { ctx.clearRect(0,0,canvas.width,canvas.height); drawStars(); drawPlayer(); ctx.fillStyle='#ffe58a'; bullets.forEach(b=>ctx.fillRect(b.x-2,b.y-10,4,12)); ctx.fillStyle='#ff7868'; enemyBullets.forEach(b=>ctx.fillRect(b.x-3,b.y,6,11)); enemies.forEach(e=>{ctx.save();ctx.translate(e.x,e.y);ctx.rotate(e.spin);ctx.fillStyle='#60717d';ctx.beginPath();ctx.moveTo(0,-e.size/2);ctx.lineTo(e.size/2,e.size/2);ctx.lineTo(0,e.size/4);ctx.lineTo(-e.size/2,e.size/2);ctx.closePath();ctx.fill();ctx.fillStyle='#f05b5b';ctx.fillRect(-4,-4,8,7);ctx.restore();}); }
+    function loop(time) { if(!running) return; if(time-lastSpawn>Math.max(360,900-level*55)){spawnEnemy();lastSpawn=time;} if(keys.ArrowLeft||keys.a) player.x-=player.speed; if(keys.ArrowRight||keys.d) player.x+=player.speed; if(keys[' ']) shoot(); player.x=Math.max(35,Math.min(canvas.width-35,player.x)); if(player.invulnerable>0) player.invulnerable-=16; bullets.forEach(b=>b.y-=b.speed); enemies.forEach(e=>{e.y+=e.speed;if(time-e.lastShot>1200){enemyBullets.push({x:e.x,y:e.y+e.size/2,speed:4+level*.15});e.lastShot=time;}}); enemyBullets.forEach(b=>b.y+=b.speed); bullets=bullets.filter(b=>b.y>-20); enemyBullets=enemyBullets.filter(b=>b.y<canvas.height+20); enemies=enemies.filter(e=>{if(e.y>canvas.height+30){lives--;updateHud();if(lives<=0)endGame();return false;}return true;}); bullets.forEach((b,bi)=>enemies.forEach((e,ei)=>{if(hit(b,e)){bullets.splice(bi,1);enemies.splice(ei,1);score+=10;level=1+Math.floor(score/100);updateHud();}})); if(player.invulnerable<=0) enemyBullets.forEach(b=>{if(Math.abs(b.x-player.x)<27&&Math.abs(b.y-player.y)<22){b.y=canvas.height+40;player.hp-=20;updateHud();if(player.hp<=0){lives--;player.hp=100;if(lives<=0)endGame();}}}); draw(); animation=requestAnimationFrame(loop); }
+    document.addEventListener('keydown',e=>{keys[e.key]=true;if(e.key===' ')e.preventDefault();if(e.key==='Shift')dodge();if(e.key.toLowerCase()==='r')reload();}); document.addEventListener('keyup',e=>keys[e.key]=false); canvas.addEventListener('mousemove',e=>{const r=canvas.getBoundingClientRect();player.x=(e.clientX-r.left)*canvas.width/r.width;}); canvas.addEventListener('click',shoot); startButton.addEventListener('click',startGame); draw(); updateHud();
+  </script>
+</body>
+</html>
